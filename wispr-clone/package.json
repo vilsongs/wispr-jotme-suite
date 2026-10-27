@@ -1,0 +1,28 @@
+{
+  "name": "wispr-clone",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Ditado por voz 100% offline (português e inglês) com Whisper local — segure o atalho, fale e o texto aparece onde está o cursor.",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "node build.mjs",
+    "start": "node build.mjs && electron .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:cov": "vitest run --coverage",
+    "test:int": "vitest run --config vitest.int.config.mts",
+    "start:dry": "node build.mjs && electron . --dry-run"
+  },
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "@vitest/coverage-v8": "^5.0.4",
+    "electron": "^44.7.0",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.4"
+  },
+  "dependencies": {
+    "koffi": "^3.3.3"
+  }
+}

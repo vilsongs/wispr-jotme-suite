@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'" />
+    <title>Status do ditado</title>
+    <link rel="stylesheet" href="overlay.css" />
+  </head>
+  <body>
+    <div class="pill" id="pill" data-phase="recording" role="status" aria-live="polite">
+      <span class="dot" aria-hidden="true"></span>
+      <div class="bars" id="bars" aria-hidden="true"></div>
+      <span class="label" id="label">Ouvindo…</span>
+    </div>
+    <script src="overlay.js"></script>
+  </body>
+</html>

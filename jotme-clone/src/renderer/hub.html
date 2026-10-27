@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'" />
+    <link rel="stylesheet" href="hub.css" />
+    <title>JotMe Clone — Transcrição e Atas de Reunião</title>
+  </head>
+  <body>
+    <div class="app-layout">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-logo">JM</div>
+          <div>
+            <h1>JotMe Clone</h1>
+            <p class="subtitle">Sem Bot · 100% Offline (Vulkan)</p>
+          </div>
+        </div>
+
+        <nav class="nav-tabs">
+          <button class="nav-btn active" data-tab="live">🎙 Reunião Ao Vivo</button>
+          <button class="nav-btn" data-tab="meetings">📋 Atas & Histórico</button>
+          <button class="nav-btn" data-tab="dictionary">📖 Vocabulário</button>
+          <button class="nav-btn" data-tab="settings">⚙ Ajustes</button>
+        </nav>
+
+        <div class="engine-box">
+          <div class="engine-row">
+            <span id="engineDot" class="engine-dot loading"></span>
+            <span id="engineText">Carregando Whisper…</span>
+          </div>
+          <div id="stealthStatus" class="stealth-pill">Modo Furtivo Ativo</div>
+        </div>
+      </aside>
+
+      <main class="content-area">
+        <!-- ABA 1: REUNIÃO AO VIVO -->
+        <section id="tab-live" class="tab-panel active">
+          <div class="live-top-bar">
+            <input id="liveTitleInput" class="title-input" type="text" placeholder="Título da reunião (ex.: Alinhamento Sprint, Reunião Cliente…)" />
+            <div class="live-controls">
+              <span id="liveTimer" class="live-timer">00:00</span>
+              <button id="btnStartLive" class="btn primary">● Iniciar Reunião</button>
+              <button id="btnMinimizeLive" class="btn secondary hidden" title="Esconder painel e deixar só o tracinho preto no topo">— Tracinho</button>
+              <button id="btnPauseLive" class="btn secondary hidden">⏸ Pausar</button>
+              <button id="btnStopLive" class="btn danger hidden">⏹ Encerrar & Gerar Ata</button>
+            </div>
+          </div>
+
+          <div class="live-status-strip">
+            <div class="channel-meter">
+              <span class="tag you">Você (Microfone)</span>
+              <div class="bar-bg"><div id="hubMeterYou" class="bar-fill you"></div></div>
+            </div>
+            <div class="channel-meter">
+              <span class="tag them">Reunião (Sistema / Sem Bot)</span>
+              <div class="bar-bg"><div id="hubMeterThem" class="bar-fill them"></div></div>
+            </div>
+            <span id="pendingBadge" class="pending-badge">Pronto</span>
+          </div>
+
+          <div id="liveErrorBanner" class="error-banner hidden"></div>
+
+          <div class="live-split">
+            <div class="transcript-card">
+              <div class="card-header">
+                <h2>Transcrição em Tempo Real</h2>
+                <span class="card-hint">Separado automaticamente por canal de áudio</span>
+              </div>
+              <div id="hubLiveTranscript" class="transcript-scroll">
+                <div class="empty-state">
+                  Clique em <strong>Iniciar Reunião</strong> para capturar o som do Google Meet, Zoom, Teams ou WhatsApp junto com o seu microfone — sem colocar nenhum bot na chamada.
+                </div>
+              </div>
+            </div>
+
+            <div class="notes-card">
+              <div class="card-header">
+                <h2>Notas Rápidas</h2>
+                <span class="card-hint">Entram na Ata final</span>
+              </div>
+              <textarea id="liveNotesInput" class="notes-textarea" placeholder="Anote tópicos importantes, links ou observações durante a reunião…"></textarea>
+            </div>
+          </div>
+        </section>
+
+        <!-- ABA 2: ATAS & HISTÓRICO -->
+        <section id="tab-meetings" class="tab-panel">
+          <div class="meetings-split">
+            <div class="meetings-list-col">
+              <input id="searchMeetingsInput" class="search-input" type="search" placeholder="Buscar em títulos, notas ou falas…" />
+              <div id="meetingsList" class="meetings-list"></div>
+            </div>
+            <div id="meetingDetail" class="meeting-detail">
+              <div class="empty-state">Selecione uma reunião ao lado para ver a Ata completa, os Próximos Passos e a transcrição.</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ABA 3: DICIONÁRIO / VOCABULÁRIO -->
+        <section id="tab-dictionary" class="tab-panel">
+          <div class="form-grid">
+            <div class="form-card">
+              <h2>Vocabulário da Reunião (um termo por linha)</h2>
+              <p class="form-help">Nomes de pessoas, empresas, produtos e jargões em inglês que o Whisper deve priorizar na grafia.</p>
+              <textarea id="vocabTextarea" class="code-textarea" placeholder="Previplan&#10;Kubernetes&#10;Stakeholder&#10;OKR"></textarea>
+            </div>
+            <div class="form-card">
+              <h2>Substituições Automáticas (errado =&gt; certo)</h2>
+              <p class="form-help">Correções aplicadas imediatamente após cada fala transcrita.</p>
+              <textarea id="dictTextarea" class="code-textarea" placeholder="jóti mi => JotMe&#10;pauer bi ai => Power BI"></textarea>
+            </div>
+          </div>
+          <div class="form-footer">
+            <button id="btnSaveDict" class="btn primary">Salvar Vocabulário e Dicionário</button>
+            <span id="dictSavedMsg" class="saved-msg"></span>
+          </div>
+        </section>
+
+        <!-- ABA 4: AJUSTES -->
+        <section id="tab-settings" class="tab-panel">
+          <div class="settings-card">
+            <h2>Configurações de Captura e Privacidade</h2>
+
+            <label class="field-row">
+              <div>
+                <strong>Fontes de Áudio da Reunião</strong>
+                <p>No modo padrão, captura seu microfone ("Você") e o som do sistema ("Reunião") simultaneamente sem instalar drivers.</p>
+              </div>
+              <select id="setCaptureMode" class="select-input">
+                <option value="both">Microfone + Áudio do Sistema (Recomendado)</option>
+                <option value="system">Apenas Áudio do Sistema (Reunião)</option>
+                <option value="mic">Apenas Meu Microfone (Presencial)</option>
+              </select>
+            </label>
+
+            <label class="field-row">
+              <div>
+                <strong>Idioma Principal</strong>
+                <p>Português (com termos técnicos em inglês), Inglês ou detecção automática.</p>
+              </div>
+              <select id="setLanguage" class="select-input">
+                <option value="pt">Português (Brasil + termos EN)</option>
+                <option value="en">Inglês</option>
+                <option value="auto">Detectar automaticamente</option>
+              </select>
+            </label>
+
+            <label class="field-row">
+              <div>
+                <strong>Modo Furtivo (Invisível no Compartilhamento de Tela)</strong>
+                <p>Usa proteção nativa do Windows para ocultar o JotMe Clone quando você compartilha a tela no Meet, Zoom ou Teams.</p>
+              </div>
+              <input id="setStealthMode" type="checkbox" class="checkbox-input" />
+            </label>
+
+            <label class="field-row">
+              <div>
+                <strong>Mostrar Barra Flutuante de Legendas Ao Vivo</strong>
+                <p>Exibe uma janela compacta sempre no topo com as falas em tempo real durante a reunião.</p>
+              </div>
+              <input id="setShowFloating" type="checkbox" class="checkbox-input" />
+            </label>
+
+            <label class="field-row">
+              <div>
+                <strong>Threads de CPU Auxiliares</strong>
+                <p>A transcrição principal usa sua GPU via Vulkan; defina quantas threads de CPU auxiliares usar (recomendado: 8).</p>
+              </div>
+              <input id="setThreads" type="number" min="1" max="32" class="number-input" />
+            </label>
+
+            <div class="form-footer">
+              <button id="btnSaveSettings" class="btn primary">Salvar Ajustes</button>
+              <span id="settingsSavedMsg" class="saved-msg"></span>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script src="hub.js"></script>
+  </body>
+</html>

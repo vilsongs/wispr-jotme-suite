@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Wispr Clone</title>
+    <link rel="stylesheet" href="hub.css" />
+  </head>
+  <body>
+    <aside class="rail">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-name">Wispr<em>Clone</em></span>
+      </div>
+      <nav class="tabs" role="tablist" aria-label="Seções">
+        <button role="tab" id="tab-history" aria-controls="panel-history" aria-selected="true">Histórico</button>
+        <button role="tab" id="tab-dictionary" aria-controls="panel-dictionary" aria-selected="false">Dicionário</button>
+        <button role="tab" id="tab-settings" aria-controls="panel-settings" aria-selected="false">Ajustes</button>
+      </nav>
+      <div class="engine" id="engine" data-kind="loading">
+        <span class="engine-dot" aria-hidden="true"></span>
+        <div>
+          <strong id="engine-title">Carregando modelo…</strong>
+          <span id="engine-detail">100% offline</span>
+        </div>
+      </div>
+    </aside>
+
+    <main>
+      <header class="hero">
+        <p class="eyebrow">Ditado offline · português + English</p>
+        <h1>Segure <span class="keys" id="hero-keys"><kbd>Ctrl</kbd><kbd>Win</kbd></span> e fale.</h1>
+        <p class="sub">Solte para colar onde está o cursor. Toque rápido para o modo mãos-livres · <kbd>Esc</kbd> cancela.</p>
+        <dl class="stats">
+          <div><dt>Palavras ditadas</dt><dd id="stat-words">0</dd></div>
+          <div><dt>Ditados</dt><dd id="stat-count">0</dd></div>
+          <div><dt>Transcrição média</dt><dd id="stat-speed">—</dd></div>
+        </dl>
+      </header>
+
+      <section class="panel" id="panel-history" role="tabpanel" aria-labelledby="tab-history">
+        <div class="panel-head">
+          <h2>Histórico</h2>
+          <button class="ghost" id="clear-history" type="button">Limpar histórico</button>
+        </div>
+        <ol class="history" id="history"></ol>
+        <p class="empty" id="history-empty">Nada por aqui ainda. Segure o atalho em qualquer campo de texto e fale.</p>
+      </section>
+
+      <section class="panel" id="panel-dictionary" role="tabpanel" aria-labelledby="tab-dictionary" hidden>
+        <div class="panel-head"><h2>Dicionário</h2></div>
+        <div class="split">
+          <label class="field">
+            <span class="field-title">Vocabulário</span>
+            <span class="field-help">Nomes, siglas e jargões que o Whisper deve grafar certo. Um por linha.</span>
+            <textarea id="vocabulary" rows="10" spellcheck="false" placeholder="Vilson&#10;Power BI&#10;Previplan"></textarea>
+          </label>
+          <label class="field">
+            <span class="field-title">Substituições</span>
+            <span class="field-help">Corrige o texto depois da transcrição. Formato: <code>errado =&gt; certo</code></span>
+            <textarea id="dictionary" rows="10" spellcheck="false" placeholder="power bi => Power BI&#10;wisper => Wispr"></textarea>
+          </label>
+        </div>
+        <div class="actions"><button class="primary" data-save type="button">Salvar dicionário</button><span class="saved" aria-live="polite"></span></div>
+      </section>
+
+      <section class="panel" id="panel-settings" role="tabpanel" aria-labelledby="tab-settings" hidden>
+        <div class="panel-head"><h2>Ajustes</h2></div>
+        <div class="grid">
+          <label class="field">
+            <span class="field-title">Atalho</span>
+            <select id="hotkey">
+              <option value="ctrl+win">Ctrl + Win (segurar)</option>
+              <option value="rctrl">Ctrl direito (segurar)</option>
+            </select>
+          </label>
+          <label class="field">
+            <span class="field-title">Idioma</span>
+            <select id="language">
+              <option value="pt">Português (aceita termos em inglês)</option>
+              <option value="auto">Detectar automaticamente</option>
+              <option value="en">English</option>
+            </select>
+          </label>
+          <label class="field">
+            <span class="field-title">Threads do processador</span>
+            <input id="threads" type="number" min="1" max="32" step="1" />
+            <span class="field-help">Vale depois de reiniciar o app.</span>
+          </label>
+          <div class="field toggles">
+            <label class="toggle"><input id="sounds" type="checkbox" /><span>Sons de início e fim</span></label>
+            <label class="toggle"><input id="restoreClipboard" type="checkbox" /><span>Restaurar a área de transferência após colar</span></label>
+            <label class="toggle"><input id="openAtLogin" type="checkbox" /><span>Iniciar com o Windows</span></label>
+          </div>
+        </div>
+        <div class="actions"><button class="primary" data-save type="button">Salvar ajustes</button><span class="saved" aria-live="polite"></span></div>
+        <p class="footnote">Modelo: <span id="model-name"></span> · tudo roda nesta máquina, nada vai para a internet.</p>
+      </section>
+    </main>
+    <script src="hub.js"></script>
+  </body>
+</html>

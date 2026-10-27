@@ -1,0 +1,236 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  color: #f8fafc;
+  overflow: hidden;
+  user-select: none;
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mini-dash {
+  display: none;
+  width: 84px;
+  height: 10px;
+  border-radius: 999px;
+  background: #05070b;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.65);
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+  -webkit-app-region: no-drag;
+}
+
+.mini-dash:hover {
+  transform: scale(1.06);
+  border-color: rgba(255, 255, 255, 0.48);
+  background: #0b0f19;
+}
+
+.mini-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.85);
+  transition: transform 80ms linear, background 120ms ease, box-shadow 80ms linear;
+}
+
+.mini-dot.paused {
+  background: rgba(245, 158, 11, 0.85);
+}
+
+.mini-dot.speaking {
+  background: #34d399;
+  box-shadow: 0 0 6px #34d399;
+  transform: scale(1.35);
+}
+
+body[data-compact="true"] .mini-dash {
+  display: flex;
+}
+
+body[data-compact="true"] .live-shell {
+  display: none;
+}
+
+.live-shell {
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+.live-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  background: rgba(30, 41, 59, 0.9);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  -webkit-app-region: drag;
+}
+
+.status-group {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 8px #ef4444;
+}
+
+.dot.paused {
+  background: #f59e0b;
+  box-shadow: none;
+}
+
+.clock {
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.stealth-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.35);
+}
+
+.meters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.meter-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.meter-track {
+  width: 44px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.meter-fill {
+  height: 100%;
+  width: 0%;
+  transition: width 70ms linear;
+}
+
+.meter-fill.you {
+  background: #34d399;
+}
+
+.meter-fill.them {
+  background: #60a5fa;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  -webkit-app-region: no-drag;
+}
+
+.icon-btn {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 7px;
+  width: 26px;
+  height: 26px;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.icon-btn.stop {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: rgba(239, 68, 68, 0.45);
+  color: #fca5a5;
+}
+
+.live-feed {
+  flex: 1;
+  padding: 10px 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  user-select: text;
+}
+
+.empty-hint {
+  color: #64748b;
+  font-size: 12.5px;
+  text-align: center;
+  margin: auto;
+}
+
+.turn-row {
+  font-size: 13px;
+  line-height: 1.42;
+  color: #f1f5f9;
+  background: rgba(30, 41, 59, 0.55);
+  padding: 6px 9px;
+  border-radius: 8px;
+}
+
+.turn-tag {
+  font-size: 11px;
+  font-weight: 700;
+  margin-right: 6px;
+}
+
+.turn-tag.you {
+  color: #34d399;
+}
+
+.turn-tag.them {
+  color: #60a5fa;
+}

@@ -1,0 +1,114 @@
+:root {
+  --pill-bg: rgba(18, 17, 16, 0.92);
+  --pill-edge: rgba(255, 255, 255, 0.09);
+  --ink: #f4efe6;
+  --ink-dim: rgba(244, 239, 230, 0.62);
+  --rec: #ff6a3d;
+  --locked: #f2b234;
+  --busy: #9fb4ff;
+  --error: #ff5a5a;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  user-select: none;
+}
+
+body {
+  display: grid;
+  place-items: center;
+}
+
+.pill {
+  --accent: var(--rec);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 16px 0 14px;
+  border-radius: 999px;
+  background: var(--pill-bg);
+  box-shadow:
+    inset 0 0 0 1px var(--pill-edge),
+    0 8px 24px rgba(0, 0, 0, 0.35);
+  color: var(--ink);
+  animation: rise 220ms var(--ease) both;
+}
+
+.pill[data-phase="locked"] { --accent: var(--locked); }
+.pill[data-phase="processing"] { --accent: var(--busy); }
+.pill[data-phase="error"] { --accent: var(--error); }
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--accent) 0%, transparent); }
+}
+
+.bars {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 22px;
+}
+
+.bars i {
+  display: block;
+  width: 3px;
+  height: 22px;
+  border-radius: 2px;
+  background: var(--accent);
+  transform: scaleY(0.12);
+  transition: transform 90ms linear;
+}
+
+.pill[data-phase="processing"] .bars i {
+  animation: wave 900ms ease-in-out infinite;
+  animation-delay: calc(var(--i) * 70ms);
+  transition: none;
+}
+
+@keyframes wave {
+  0%, 100% { transform: scaleY(0.15); }
+  50% { transform: scaleY(0.7); }
+}
+
+.pill[data-phase="error"] .bars { display: none; }
+
+.label {
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 230px;
+  color: var(--ink);
+}
+
+.label small {
+  font-weight: 500;
+  color: var(--ink-dim);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pill, .dot, .pill[data-phase="processing"] .bars i { animation: none; }
+}

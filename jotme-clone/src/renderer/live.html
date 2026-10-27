@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'" />
+    <link rel="stylesheet" href="live.css" />
+    <title>JotMe Clone — Ao Vivo</title>
+  </head>
+  <body data-compact="true">
+    <button id="miniDash" class="mini-dash" type="button" title="Gravando reunião — clique para abrir o pop-up">
+      <span id="miniDot" class="mini-dot"></span>
+    </button>
+    <div class="live-shell">
+      <header class="live-header">
+        <div class="status-group">
+          <span id="liveDot" class="dot recording"></span>
+          <span id="liveClock" class="clock">00:00</span>
+          <span class="stealth-badge" title="Invisível em compartilhamento de tela">FURTIVO</span>
+        </div>
+        <div class="meters">
+          <div class="meter-item" title="Seu microfone">
+            <span>Você</span>
+            <div class="meter-track"><div id="meterYou" class="meter-fill you"></div></div>
+          </div>
+          <div class="meter-item" title="Áudio da reunião (sistema)">
+            <span>Reunião</span>
+            <div class="meter-track"><div id="meterThem" class="meter-fill them"></div></div>
+          </div>
+        </div>
+        <div class="actions">
+          <button id="btnPause" class="icon-btn" title="Pausar / Retomar">⏸</button>
+          <button id="btnStop" class="icon-btn stop" title="Encerrar e Gerar Ata">⏹</button>
+          <button id="btnHub" class="icon-btn" title="Abrir Painel Completo">↗</button>
+          <button id="btnHide" class="icon-btn" title="Minimizar para tracinho preto">—</button>
+        </div>
+      </header>
+      <main id="liveFeed" class="live-feed">
+        <div class="empty-hint">Ouvindo a reunião… As falas aparecerão aqui em tempo real.</div>
+      </main>
+    </div>
+    <script src="live.js"></script>
+  </body>
+</html>
