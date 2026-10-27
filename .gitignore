@@ -4,3 +4,4 @@ models/*.bin
 bin/
 *.log
 
+whisper/

@@ -1,4 +1,4 @@
-# ==============================================================================
+﻿# ==============================================================================
 # Instalador Automático — Wispr Clone + JotMe Clone (Vulkan GPU Universal)
 # Repositório: https://github.com/vilsongs/wispr-jotme-suite
 # Compatível com: GPUs NVIDIA (GTX/RTX), AMD Radeon (RX/Radeon Graphics) e Intel (Arc/Iris Xe)
@@ -61,7 +61,7 @@ if (-not ((Test-Path $ServerExe) -and (Test-Path $VulkanDll))) {
   $CpuZip = Join-Path $TmpZipDir "whisper-cpu.zip"
   $VkZip = Join-Path $TmpZipDir "whisper-vulkan.zip"
 
-  curl.exe -L --fail -o $CpuZip "https://github.com/ggml-org/whisper.cpp/releases/download/v1.7.5/whisper-bin-x64.zip"
+  curl.exe -L --fail -o $CpuZip "https://github.com/ggml-org/whisper.cpp/releases/download/b5454/whisper-bin-x64.zip"
   Expand-Archive -Path $CpuZip -DestinationPath (Join-Path $TmpZipDir "cpu") -Force
   Get-ChildItem (Join-Path $TmpZipDir "cpu") -Recurse -File | Where-Object { $_.Extension -in @(".exe", ".dll") } | ForEach-Object {
     Copy-Item $_.FullName -Destination (Join-Path $BinDir $_.Name) -Force
@@ -93,6 +93,11 @@ if (-not (Test-Path $ModelFile) -or ((Get-Item $ModelFile).Length -lt 500MB)) {
 Write-Host "[5/6] Instalando dependências e compilando Wispr Clone + JotMe Clone..." -ForegroundColor Yellow
 Push-Location $WisprDir
 npm install
+# Garante o binário do Electron mesmo se o postinstall do pacote não tiver rodado
+if (-not (Test-Path (Join-Path $WisprDir "node_modules\electron\dist\electron.exe"))) {
+  Write-Host "  -> Baixando binário do Electron..." -ForegroundColor Yellow
+  node (Join-Path $WisprDir "node_modules\electron\install.js")
+}
 npm run build
 Pop-Location
 
