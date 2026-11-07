@@ -30,6 +30,16 @@ describe("settings", () => {
     expect(s.dictionary).toEqual([{ from: "jot me", to: "JotMe" }]);
   });
 
+  it("keeps a valid Claude model and folder, falling back for invalid values", () => {
+    const ok = sanitizeSettings({ claudeModel: "claude-sonnet-5-5", claudeContextDir: "  C:\\Reunioes\\Previplan  " });
+    expect(ok.claudeModel).toBe("claude-sonnet-5-5");
+    expect(ok.claudeContextDir).toBe("C:\\Reunioes\\Previplan");
+
+    const bad = sanitizeSettings({ claudeModel: "modelo-inventado", claudeContextDir: 42 });
+    expect(bad.claudeModel).toBe(DEFAULT_SETTINGS.claudeModel);
+    expect(bad.claudeContextDir).toBe("");
+  });
+
   it("parses dictionary text and saves/loads settings file", () => {
     const file = join(dir, "settings.json");
     expect(loadSettings(file)).toEqual(DEFAULT_SETTINGS);

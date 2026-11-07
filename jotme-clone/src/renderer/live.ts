@@ -2,14 +2,18 @@
 
 import type { LiveSessionSnapshot } from "../core/meetingSession";
 import { formatClock, speakerLabel } from "../core/summary";
-import type { AudioLevels } from "../shared/ipc";
+import type { AudioLevels, LiveAnswer, LiveToast } from "../shared/ipc";
 
 declare const liveApi: {
   onState(handler: (snapshot: LiveSessionSnapshot) => void): void;
   onLevels(handler: (levels: AudioLevels) => void): void;
   onMode(handler: (compact: boolean) => void): void;
-  sendAction(action: "pause" | "resume" | "stop" | "open-hub" | "hide" | "expand" | "collapse"): void;
+  onAnswer(handler: (answer: LiveAnswer) => void): void;
+  onToast(handler: (toast: LiveToast) => void): void;
+  sendAction(action: "pause" | "resume" | "stop" | "open-hub" | "hide" | "expand" | "collapse" | "ask" | "screenshot"): void;
 };
+
+const TOAST_VISIBLE_MS = 4000;
 
 const miniDashEl = document.getElementById("miniDash")!;
 const miniDotEl = document.getElementById("miniDot")!;
@@ -22,6 +26,20 @@ const btnStop = document.getElementById("btnStop")!;
 const btnHub = document.getElementById("btnHub")!;
 const btnHide = document.getElementById("btnHide")!;
 const feedEl = document.getElementById("liveFeed")!;
+const btnAsk = document.getElementById("btnAsk")!;
+const answerCardEl = document.getElementById("answerCard")!;
+const answerStatusEl = document.getElementById("answerStatus")!;
+const answerTextEl = document.getElementById("answerText")!;
+const btnShot = document.getElementById("btnShot")!;
+const toastEl = document.getElementById("toast")!;
+let toastTimer: number | undefined;
+
+const ANSWER_STATUS_LABEL: Record<LiveAnswer["status"], string> = {
+  loading: "pensando…",
+  streaming: "respondendo…",
+  done: "",
+  error: "",
+};
 
 let currentSnapshot: LiveSessionSnapshot | null = null;
 
@@ -70,6 +88,23 @@ liveApi.onLevels((levels) => {
   miniDotEl.classList.toggle("speaking", activeVoice);
 });
 
+liveApi.onAnswer((answer) => {
+  answerCardEl.hidden = false;
+  answerCardEl.classList.toggle("error", answer.status === "error");
+  answerStatusEl.textContent = ANSWER_STATUS_LABEL[answer.status];
+  answerTextEl.textContent = answer.text;
+});
+
+liveApi.onToast((toast) => {
+  toastEl.hidden = false;
+  toastEl.classList.toggle("error", toast.kind === "error");
+  toastEl.textContent = toast.text;
+  window.clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(() => {
+    toastEl.hidden = true;
+  }, TOAST_VISIBLE_MS);
+});
+
 liveApi.onMode((compact) => {
   document.body.dataset.compact = compact ? "true" : "false";
 });
@@ -88,6 +123,8 @@ miniDashEl.addEventListener("click", () => {
   liveApi.sendAction("expand");
 });
 
+btnAsk.addEventListener("click", () => liveApi.sendAction("ask"));
+btnShot.addEventListener("click", () => liveApi.sendAction("screenshot"));
 btnPause.addEventListener("click", () => {
   if (!currentSnapshot) return;
   liveApi.sendAction(currentSnapshot.status === "paused" ? "resume" : "pause");

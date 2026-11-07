@@ -28,12 +28,19 @@
           </div>
         </div>
         <div class="actions">
-          <button id="btnPause" class="icon-btn" title="Pausar / Retomar">⏸</button>
+          <button id="btnAsk" class="icon-btn ask" title="Perguntar ao Claude (Ctrl+Alt+J)">✦</button>
+          <button id="btnShot" class="icon-btn" title="Tirar print da tela (Ctrl+Shift+P ou Alt+B)">📷</button>
+          <button id="btnPause"class="icon-btn" title="Pausar / Retomar">⏸</button>
           <button id="btnStop" class="icon-btn stop" title="Encerrar e Gerar Ata">⏹</button>
           <button id="btnHub" class="icon-btn" title="Abrir Painel Completo">↗</button>
           <button id="btnHide" class="icon-btn" title="Minimizar para tracinho preto">—</button>
         </div>
       </header>
+      <div id="toast" class="toast" hidden></div>
+      <section id="answerCard"class="answer-card" hidden>
+        <div class="answer-label">✦ Claude <span id="answerStatus" class="answer-status"></span></div>
+        <div id="answerText" class="answer-text"></div>
+      </section>
       <main id="liveFeed" class="live-feed">
         <div class="empty-hint">Ouvindo a reunião… As falas aparecerão aqui em tempo real.</div>
       </main>

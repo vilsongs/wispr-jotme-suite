@@ -1,5 +1,6 @@
 /** Lógica do painel principal: controle da reunião ao vivo, visualização de Atas, dicionário e ajustes. */
 
+import type { ClaudeModel } from "../core/claudeAssist";
 import { parseDictionaryLines } from "../core/cleanup";
 import type { MeetingRecord } from "../core/meetings";
 import type { CaptureMode, Settings } from "../core/settings";
@@ -21,6 +22,8 @@ declare const hubApi: {
   deleteMeeting(id: string): Promise<boolean>;
   exportMeeting(id: string, format: "md" | "txt"): Promise<string | null>;
   copyMeeting(id: string, format: "md" | "txt"): Promise<boolean>;
+  setClaudeKey(key: string): Promise<{ ok: boolean; message: string }>;
+  pickContextDir(): Promise<string | null>;
   minimizeToDash(): void;
 };
 
@@ -59,6 +62,13 @@ const setLanguage = document.getElementById("setLanguage") as HTMLSelectElement;
 const setStealthMode = document.getElementById("setStealthMode") as HTMLInputElement;
 const setShowFloating = document.getElementById("setShowFloating") as HTMLInputElement;
 const setThreads = document.getElementById("setThreads") as HTMLInputElement;
+const setClaudeKey = document.getElementById("setClaudeKey") as HTMLInputElement;
+const btnSaveClaudeKey = document.getElementById("btnSaveClaudeKey")!;
+const claudeKeyStatus = document.getElementById("claudeKeyStatus")!;
+const setClaudeModel = document.getElementById("setClaudeModel") as HTMLSelectElement;
+const claudeDirLabel = document.getElementById("claudeDirLabel")!;
+const btnPickClaudeDir = document.getElementById("btnPickClaudeDir")!;
+const btnClearClaudeDir = document.getElementById("btnClearClaudeDir")!;
 const btnSaveSettings = document.getElementById("btnSaveSettings")!;
 const settingsSavedMsg = document.getElementById("settingsSavedMsg")!;
 
@@ -298,10 +308,19 @@ function populateForms(settings: Settings): void {
   setStealthMode.checked = settings.stealthMode;
   setShowFloating.checked = settings.showFloatingBar;
   setThreads.value = String(settings.threads);
+  setClaudeModel.value = settings.claudeModel;
+}
+
+const CLAUDE_DIR_HINT = "Arquivos .md e .txt lidos antes das respostas (regras, números, termos). Prefira 1 a 3 páginas por reunião.";
+
+function renderClaudeStatus(next: HubState): void {
+  claudeKeyStatus.textContent = next.claudeKeySet ? "Chave cadastrada e guardada cifrada neste computador." : "Nenhuma chave cadastrada.";
+  claudeDirLabel.textContent = next.settings.claudeContextDir ? `Pasta atual: ${next.settings.claudeContextDir}` : CLAUDE_DIR_HINT;
 }
 
 function applyState(next: HubState, firstLoad = false): void {
   state = next;
+  renderClaudeStatus(next);
   renderSidebar(next);
   renderLiveTab(next);
   renderMeetingsTab(next);
@@ -348,10 +367,28 @@ btnSaveDict.addEventListener("click", async () => {
   setTimeout(() => (dictSavedMsg.textContent = ""), 2000);
 });
 
+btnSaveClaudeKey.addEventListener("click", async () => {
+  const result = await hubApi.setClaudeKey(setClaudeKey.value);
+  if (result.ok) setClaudeKey.value = "";
+  else claudeKeyStatus.textContent = result.message;
+});
+
+btnPickClaudeDir.addEventListener("click", async () => {
+  if (!state) return;
+  const dir = await hubApi.pickContextDir();
+  if (dir) await hubApi.saveSettings({ ...state.settings, claudeContextDir: dir });
+});
+
+btnClearClaudeDir.addEventListener("click", async () => {
+  if (!state) return;
+  await hubApi.saveSettings({ ...state.settings, claudeContextDir: "" });
+});
+
 btnSaveSettings.addEventListener("click", async () => {
   if (!state) return;
   await hubApi.saveSettings({
     ...state.settings,
+    claudeModel: setClaudeModel.value as ClaudeModel,
     captureMode: setCaptureMode.value as CaptureMode,
     language: setLanguage.value as Language,
     stealthMode: setStealthMode.checked,

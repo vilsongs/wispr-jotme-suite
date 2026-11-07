@@ -46,6 +46,63 @@ describe("VoiceSegmenter", () => {
     expect(onSegment).toHaveBeenCalledOnce();
   });
 
+  it("after the soft limit, cuts at the first short pause instead of waiting for the full pause", () => {
+    const onSegment = vi.fn();
+    const seg = new VoiceSegmenter({
+      sampleRate: sr,
+      minSpeechMs: 200,
+      pauseMs: 1000,
+      softLimitMs: 800,
+      softPauseMs: 400,
+      maxSegmentMs: 5000,
+      preRollChunks: 0,
+      onSegment,
+    });
+
+    for (let i = 0; i < 4; i++) seg.push(speechChunk()); // 800 ms de fala contínua
+    seg.push(silentChunk()); // 200 ms de pausa: ainda curta demais
+    expect(onSegment).not.toHaveBeenCalled();
+    seg.push(silentChunk()); // 400 ms de pausa: corta aqui, bem antes do 1000 ms
+    expect(onSegment).toHaveBeenCalledOnce();
+  });
+
+  it("does not cut on a short pause before the soft limit is reached", () => {
+    const onSegment = vi.fn();
+    const seg = new VoiceSegmenter({
+      sampleRate: sr,
+      minSpeechMs: 200,
+      pauseMs: 1000,
+      softLimitMs: 2000,
+      softPauseMs: 400,
+      preRollChunks: 0,
+      onSegment,
+    });
+
+    seg.push(speechChunk());
+    seg.push(speechChunk());
+    seg.push(silentChunk());
+    seg.push(silentChunk()); // 400 ms de pausa, mas só 800 ms no total
+    expect(onSegment).not.toHaveBeenCalled();
+  });
+
+  it("uses the faster defaults: 450 ms pause and an 8 s hard cap", () => {
+    const onSegment = vi.fn();
+    const seg = new VoiceSegmenter({ sampleRate: sr, preRollChunks: 0, onSegment });
+
+    for (let i = 0; i < 2; i++) seg.push(speechChunk()); // 400 ms de fala
+    seg.push(silentChunk());
+    seg.push(silentChunk()); // 400 ms de pausa: ainda não
+    expect(onSegment).not.toHaveBeenCalled();
+    seg.push(silentChunk()); // 600 ms de pausa (>= 450): emite
+    expect(onSegment).toHaveBeenCalledOnce();
+
+    onSegment.mockClear();
+    for (let i = 0; i < 39; i++) seg.push(speechChunk()); // 7,8 s contínuos
+    expect(onSegment).not.toHaveBeenCalled();
+    seg.push(speechChunk()); // 8,0 s: teto duro
+    expect(onSegment).toHaveBeenCalledOnce();
+  });
+
   it("flushes remaining speech when the meeting pauses or stops", () => {
     const onSegment = vi.fn();
     const seg = new VoiceSegmenter({ sampleRate: sr, minSpeechMs: 200, pauseMs: 1000, onSegment });

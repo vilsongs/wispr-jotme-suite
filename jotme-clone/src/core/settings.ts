@@ -3,6 +3,7 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { cpus } from "node:os";
 import { dirname } from "node:path";
+import { DEFAULT_MODEL, MODELS, type ClaudeModel } from "./claudeAssist";
 import type { DictionaryEntry } from "./cleanup";
 import type { Language } from "./whisperClient";
 import { defaultThreads } from "./whisperServer";
@@ -19,6 +20,10 @@ export interface Settings {
   threads: number;
   dictionary: DictionaryEntry[];
   vocabulary: string[];
+  /** Modelo do assistente "Perguntar ao Claude". */
+  claudeModel: ClaudeModel;
+  /** Pasta com o material de apoio (.md/.txt) lido antes das perguntas. */
+  claudeContextDir: string;
 }
 
 const CAPTURE_MODES: readonly CaptureMode[] = ["both", "system", "mic"];
@@ -26,6 +31,7 @@ const LANGUAGES: readonly Language[] = ["pt", "auto", "en"];
 const MAX_THREADS = 32;
 const MAX_LIST = 200;
 const MAX_WORD = 100;
+const MAX_PATH = 500;
 
 export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
   captureMode: "both",
@@ -35,6 +41,8 @@ export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
   threads: defaultThreads(cpus().length),
   dictionary: [],
   vocabulary: [],
+  claudeModel: DEFAULT_MODEL,
+  claudeContextDir: "",
 });
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -71,6 +79,8 @@ export function sanitizeSettings(input: unknown): Settings {
     threads: sanitizeThreads(s.threads),
     dictionary: sanitizeDictionary(s.dictionary),
     vocabulary: sanitizeVocabulary(s.vocabulary),
+    claudeModel: oneOf(s.claudeModel, MODELS, DEFAULT_SETTINGS.claudeModel),
+    claudeContextDir: typeof s.claudeContextDir === "string" ? s.claudeContextDir.trim().slice(0, MAX_PATH) : "",
   };
 }
 

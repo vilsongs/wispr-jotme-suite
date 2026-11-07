@@ -12,7 +12,12 @@ export interface SegmenterOptions {
   sampleRate: number;
   speechRms?: number;
   minSpeechMs?: number;
+  /** Pausa que fecha o trecho em qualquer momento. */
   pauseMs?: number;
+  /** Depois deste tempo de trecho, uma pausa mais curta (softPauseMs) já basta para cortar. */
+  softLimitMs?: number;
+  softPauseMs?: number;
+  /** Teto duro, só atingido por quem fala sem respirar. */
   maxSegmentMs?: number;
   preRollChunks?: number;
   onSegment(samples: Float32Array, speechDurationMs: number): void;
@@ -20,8 +25,10 @@ export interface SegmenterOptions {
 
 const DEFAULT_SPEECH_RMS = 0.0045;
 const DEFAULT_MIN_SPEECH_MS = 280;
-const DEFAULT_PAUSE_MS = 650;
-const DEFAULT_MAX_SEGMENT_MS = 10_000;
+const DEFAULT_PAUSE_MS = 450;
+const DEFAULT_SOFT_LIMIT_MS = 4_000;
+const DEFAULT_SOFT_PAUSE_MS = 250;
+const DEFAULT_MAX_SEGMENT_MS = 8_000;
 const DEFAULT_PRE_ROLL_CHUNKS = 3;
 
 export class VoiceSegmenter {
@@ -29,6 +36,8 @@ export class VoiceSegmenter {
   private readonly speechRms: number;
   private readonly minSpeechMs: number;
   private readonly pauseMs: number;
+  private readonly softLimitMs: number;
+  private readonly softPauseMs: number;
   private readonly maxSegmentMs: number;
   private readonly preRollChunks: number;
   private readonly onSegment: (samples: Float32Array, speechDurationMs: number) => void;
@@ -45,6 +54,8 @@ export class VoiceSegmenter {
     this.speechRms = opts.speechRms ?? DEFAULT_SPEECH_RMS;
     this.minSpeechMs = opts.minSpeechMs ?? DEFAULT_MIN_SPEECH_MS;
     this.pauseMs = opts.pauseMs ?? DEFAULT_PAUSE_MS;
+    this.softLimitMs = opts.softLimitMs ?? DEFAULT_SOFT_LIMIT_MS;
+    this.softPauseMs = opts.softPauseMs ?? DEFAULT_SOFT_PAUSE_MS;
     this.maxSegmentMs = opts.maxSegmentMs ?? DEFAULT_MAX_SEGMENT_MS;
     this.preRollChunks = opts.preRollChunks ?? DEFAULT_PRE_ROLL_CHUNKS;
     this.onSegment = opts.onSegment;
@@ -78,7 +89,11 @@ export class VoiceSegmenter {
       }
     }
 
-    if ((this.silenceMs >= this.pauseMs && this.speechMs >= this.minSpeechMs) || this.totalMs >= this.maxSegmentMs) {
+    const hasEnoughSpeech = this.speechMs >= this.minSpeechMs;
+    const pauseEnds = this.silenceMs >= this.pauseMs;
+    // Trecho já longo: corta na primeira respirada, em vez de esperar a pausa inteira ou o teto duro.
+    const softCut = this.totalMs >= this.softLimitMs && this.silenceMs >= this.softPauseMs;
+    if (((pauseEnds || softCut) && hasEnoughSpeech) || this.totalMs >= this.maxSegmentMs) {
       this.emitIfValid();
     } else if (this.silenceMs >= this.pauseMs && this.speechMs < this.minSpeechMs) {
       // Ruído muito curto (clique/tosse isolada): descarta e volta a ouvir

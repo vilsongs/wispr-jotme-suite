@@ -14,6 +14,8 @@ export const IPC = {
   liveLevels: "live:levels",
   liveMode: "live:mode",
   liveAction: "live:action",
+  liveAnswer: "live:answer",
+  liveToast: "live:toast",
   hubGetState: "hub:get-state",
   hubStateChanged: "hub:state-changed",
   hubLevels: "hub:levels",
@@ -27,7 +29,20 @@ export const IPC = {
   hubDeleteMeeting: "hub:delete-meeting",
   hubExportMeeting: "hub:export-meeting",
   hubCopyMeeting: "hub:copy-meeting",
+  hubSetClaudeKey: "hub:set-claude-key",
+  hubPickContextDir: "hub:pick-context-dir",
 } as const;
+
+export interface LiveAnswer {
+  status: "loading" | "streaming" | "done" | "error";
+  text: string;
+}
+
+/** Aviso curto na barra flutuante (ex.: print salvo). */
+export interface LiveToast {
+  kind: "ok" | "error";
+  text: string;
+}
 
 export type RecorderCommand = "start" | "pause" | "resume" | "stop";
 
@@ -50,6 +65,8 @@ export interface HubState {
   engineStatus: EngineStatus;
   modelName: string;
   settings: Settings;
+  /** A chave de API nunca sai do processo principal; a tela só sabe se ela existe. */
+  claudeKeySet: boolean;
   session: LiveSessionSnapshot;
   meetings: readonly MeetingRecord[];
 }

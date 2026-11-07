@@ -20,5 +20,7 @@ contextBridge.exposeInMainWorld("hubApi", {
   deleteMeeting: (id: string) => ipcRenderer.invoke(IPC.hubDeleteMeeting, id),
   exportMeeting: (id: string, format: "md" | "txt") => ipcRenderer.invoke(IPC.hubExportMeeting, id, format),
   copyMeeting: (id: string, format: "md" | "txt") => ipcRenderer.invoke(IPC.hubCopyMeeting, id, format),
+  setClaudeKey: (key: string): Promise<{ ok: boolean; message: string }> => ipcRenderer.invoke(IPC.hubSetClaudeKey, key),
+  pickContextDir: (): Promise<string | null> => ipcRenderer.invoke(IPC.hubPickContextDir),
   minimizeToDash: () => ipcRenderer.send(IPC.liveAction, "collapse"),
 });

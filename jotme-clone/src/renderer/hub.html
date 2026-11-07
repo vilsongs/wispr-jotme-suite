@@ -170,6 +170,42 @@
               <input id="setThreads" type="number" min="1" max="32" class="number-input" />
             </label>
 
+            <h2>Assistente Claude (opcional)</h2>
+            <p class="field-note">Com o botão ✦ ou o atalho Ctrl+Alt+J, o texto recente da reunião é enviado ao Claude e a resposta aparece na barra flutuante. Só texto sai do computador; o áudio continua local.</p>
+
+            <label class="field-row">
+              <div>
+                <strong>Chave de API da Anthropic</strong>
+                <p id="claudeKeyStatus">Nenhuma chave cadastrada.</p>
+              </div>
+              <div class="inline-controls">
+                <input id="setClaudeKey" type="password" class="text-input" autocomplete="off" placeholder="sk-ant-..." />
+                <button id="btnSaveClaudeKey" class="btn" type="button">Guardar</button>
+              </div>
+            </label>
+
+            <label class="field-row">
+              <div>
+                <strong>Modelo</strong>
+                <p>Haiku é o mais rápido. Sonnet responde melhor perguntas técnicas, com um pouco mais de espera.</p>
+              </div>
+              <select id="setClaudeModel" class="select-input">
+                <option value="claude-haiku-5-5">Haiku 5.5 (mais rápido)</option>
+                <option value="claude-sonnet-5-5">Sonnet 5.5 (mais preciso)</option>
+              </select>
+            </label>
+
+            <label class="field-row">
+              <div>
+                <strong>Pasta com o material de apoio</strong>
+                <p id="claudeDirLabel">Arquivos .md e .txt lidos antes das respostas (regras, números, termos). Prefira 1 a 3 páginas por reunião.</p>
+              </div>
+              <div class="inline-controls">
+                <button id="btnPickClaudeDir" class="btn" type="button">Escolher pasta</button>
+                <button id="btnClearClaudeDir" class="btn" type="button">Limpar</button>
+              </div>
+            </label>
+
             <div class="form-footer">
               <button id="btnSaveSettings" class="btn primary">Salvar Ajustes</button>
               <span id="settingsSavedMsg" class="saved-msg"></span>

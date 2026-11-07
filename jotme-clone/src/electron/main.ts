@@ -5,18 +5,21 @@
  * - Coordena o gravador duplo (Microfone + Sistema), a barra flutuante e o painel de Atas
  */
 
-import { app, BrowserWindow, clipboard, desktopCapturer, dialog, ipcMain, Menu, session, Tray } from "electron";
+import { app, BrowserWindow, clipboard, desktopCapturer, dialog, globalShortcut, ipcMain, Menu, safeStorage, screen, session, Tray } from "electron";
 import { randomUUID } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { ApiKeyStore } from "../core/apiKeyStore";
+import { askClaude, ClaudeError, loadContextFolder } from "../core/claudeAssist";
 import { MeetingStore } from "../core/meetings";
 import { MeetingSessionController } from "../core/meetingSession";
 import { RpcClient } from "../core/rpc";
+import { saveScreenshot } from "../core/screenshotStore";
 import { loadSettings, saveSettings, type CaptureMode, type Settings } from "../core/settings";
 import { formatMeetingMarkdown, formatMeetingText } from "../core/summary";
 import { audioContextFor, SAMPLE_RATE } from "../core/wav";
 import { buildPrompt, transcribe } from "../core/whisperClient";
-import { IPC, type AudioLevels, type EngineStatus, type HubState, type RecorderCommand, type RecorderSegmentPayload } from "../shared/ipc";
+import { IPC, type AudioLevels, type EngineStatus, type HubState, type LiveAnswer, type LiveToast, type RecorderCommand, type RecorderSegmentPayload } from "../shared/ipc";
 import { createLogger } from "./logger";
 import { drawTrayIcon, ICON_COLORS } from "./trayIcon";
 import { WhisperProcess } from "./whisperProcess";
@@ -27,6 +30,9 @@ const RECORDER_TIMEOUT_MS = 12_000;
 const RECORDER_RESPAWN_DELAY_MS = 1_000;
 const TRANSCRIBE_BASE_TIMEOUT_MS = 30_000;
 const TRANSCRIBE_MS_PER_SECOND = 2_000;
+const ASK_SHORTCUT = "CommandOrControl+Alt+J";
+const SCREENSHOT_SHORTCUTS = ["CommandOrControl+Shift+P", "Alt+B"];
+const SCREENSHOT_FOLDER_NAME = "JotMe Prints";
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
@@ -38,8 +44,17 @@ const log = createLogger(join(userData, "logs", "jotme-clone.log"));
 const settingsFile = join(userData, "settings.json");
 const meetingsFile = join(userData, "meetings.json");
 const whisperDir = join(app.getAppPath(), "whisper");
+const keyStore = new ApiKeyStore(join(userData, "claude-key.bin"), {
+  encrypt: (plain) => {
+    if (!safeStorage.isEncryptionAvailable()) throw new Error("O Windows não liberou a cifra para guardar a chave.");
+    return safeStorage.encryptString(plain);
+  },
+  decrypt: (data) => safeStorage.decryptString(data),
+});
 
 let settings = loadSettings(settingsFile);
+let askAbort: AbortController | null = null;
+let contextCache: { dir: string; text: string } | null = null;
 let engineStatus: EngineStatus = { kind: "loading" };
 let tray: Tray | null = null;
 let hubWin: BrowserWindow | null = null;
@@ -71,6 +86,7 @@ function getHubState(): HubState {
     engineStatus,
     modelName: MODEL_FILE,
     settings,
+    claudeKeySet: keyStore.has(),
     session: sessionController.getSnapshot(),
     meetings: meetings.list(),
   };
@@ -142,6 +158,75 @@ const sessionController = new MeetingSessionController({
   sampleRate: SAMPLE_RATE,
   log,
 });
+
+function sendAnswer(answer: LiveAnswer): void {
+  if (liveWin && !liveWin.isDestroyed()) liveWin.webContents.send(IPC.liveAnswer, answer);
+}
+
+function sendToast(toast: LiveToast): void {
+  if (liveWin && !liveWin.isDestroyed()) liveWin.webContents.send(IPC.liveToast, toast);
+}
+
+/**
+ * Print da tela onde o mouse está, salvo em Imagens\JotMe Prints\<dia>\.
+ * A barra do JotMe fica fora da imagem porque está protegida contra captura (modo furtivo).
+ */
+async function takeScreenshot(): Promise<void> {
+  try {
+    const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+    const size = { width: Math.round(display.size.width * display.scaleFactor), height: Math.round(display.size.height * display.scaleFactor) };
+    const sources = await desktopCapturer.getSources({ types: ["screen"], thumbnailSize: size });
+    const source = sources.find((s) => s.display_id === String(display.id)) ?? sources[0];
+    if (!source) throw new Error("Nenhuma tela disponível para capturar.");
+    const file = saveScreenshot(join(app.getPath("pictures"), SCREENSHOT_FOLDER_NAME), source.thumbnail.toPNG(), new Date());
+    log("info", `Print salvo em ${file}.`);
+    sendToast({ kind: "ok", text: `📷 Print salvo: ${file}` });
+  } catch (err) {
+    log("error", "Falha ao tirar o print da tela.", err);
+    sendToast({ kind: "error", text: "Não foi possível tirar o print da tela." });
+  }
+}
+
+/** O material é lido uma vez por pasta e reaproveitado; trocar a pasta nos Ajustes invalida o cache. */
+function getContextText(): string {
+  const dir = settings.claudeContextDir;
+  if (contextCache?.dir !== dir) contextCache = { dir, text: loadContextFolder(dir) };
+  return contextCache.text;
+}
+
+async function askAssistant(): Promise<void> {
+  const apiKey = keyStore.get();
+  if (!apiKey) {
+    sendAnswer({ status: "error", text: "Cadastre a chave de API do Claude em Ajustes para usar o assistente." });
+    return;
+  }
+  askAbort?.abort();
+  const controller = new AbortController();
+  askAbort = controller;
+  setLiveMode(false);
+  sendAnswer({ status: "loading", text: "" });
+
+  let text = "";
+  try {
+    await askClaude({
+      apiKey,
+      model: settings.claudeModel,
+      context: getContextText(),
+      turns: sessionController.getSnapshot().turns,
+      signal: controller.signal,
+      onDelta: (delta) => {
+        text += delta;
+        sendAnswer({ status: "streaming", text });
+      },
+    });
+    sendAnswer({ status: "done", text });
+  } catch (err) {
+    if (controller.signal.aborted) return; // uma pergunta mais nova assumiu o cartão
+    const message = err instanceof ClaudeError ? err.message : "Não foi possível consultar o Claude.";
+    log("warn", "Falha ao consultar o Claude.", err);
+    sendAnswer({ status: "error", text: message });
+  }
+}
 
 function openHub(): void {
   if (hubWin && !hubWin.isDestroyed()) {
@@ -238,7 +323,9 @@ function wireIpc(): void {
     else if (action === "resume") void sessionController.resume();
     else if (action === "stop") {
       void sessionController.stop().then(() => openHub());
-    } else if (action === "open-hub") openHub();
+    } else if (action === "ask") void askAssistant();
+    else if (action === "screenshot") void takeScreenshot();
+    else if (action === "open-hub") openHub();
     else if (action === "expand") setLiveMode(false);
     else if (action === "collapse" || action === "hide") {
       if (hubWin && !hubWin.isDestroyed() && hubWin.isVisible()) hubWin.hide();
@@ -266,10 +353,28 @@ function wireIpc(): void {
 
   ipcMain.handle(IPC.hubSaveSettings, (_e, next: Settings) => {
     settings = saveSettings(settingsFile, next);
+    contextCache = null;
     applyStealthProtection(hubWin, settings.stealthMode);
     applyStealthProtection(liveWin, settings.stealthMode);
     broadcastState();
     return settings;
+  });
+
+  ipcMain.handle(IPC.hubSetClaudeKey, (_e, key: unknown) => {
+    try {
+      keyStore.set(typeof key === "string" ? key : "");
+    } catch (err) {
+      log("error", "Não foi possível guardar a chave do Claude.", err);
+      return { ok: false, message: err instanceof Error ? err.message : "Falha ao guardar a chave." };
+    }
+    broadcastState();
+    return { ok: true, message: "" };
+  });
+
+  ipcMain.handle(IPC.hubPickContextDir, async () => {
+    if (!hubWin || hubWin.isDestroyed()) return null;
+    const res = await dialog.showOpenDialog(hubWin, { title: "Pasta com o material de apoio", properties: ["openDirectory"] });
+    return res.canceled || res.filePaths.length === 0 ? null : res.filePaths[0];
   });
 
   ipcMain.handle(IPC.hubUpdateMeeting, (_e, id: string, patch: { title?: string; notes?: string }) => {
@@ -328,6 +433,7 @@ app.on("window-all-closed", () => {
   // continua na bandeja
 });
 app.on("before-quit", () => {
+  globalShortcut.unregisterAll();
   whisper.stop();
 });
 
@@ -340,6 +446,14 @@ void app.whenReady().then(() => {
   liveWin = createLiveWindow(settings.stealthMode);
   wireIpc();
   createTray();
+  if (!globalShortcut.register(ASK_SHORTCUT, () => void askAssistant())) {
+    log("warn", `Atalho ${ASK_SHORTCUT} já está em uso por outro programa.`);
+  }
+  for (const shortcut of SCREENSHOT_SHORTCUTS) {
+    if (!globalShortcut.register(shortcut, () => void takeScreenshot())) {
+      log("warn", `Atalho ${shortcut} já está em uso por outro programa.`);
+    }
+  }
   openHub();
   void bootWhisper();
 });
